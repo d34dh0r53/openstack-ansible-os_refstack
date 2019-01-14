@@ -18,4 +18,4 @@
 # whether the host is in the host group and the service is
 # enabled.
 #
-tempest_package_list: "{{ tempest_distro_packages }}"
+refstack_package_list: "{{ refstack_distro_packages }}"

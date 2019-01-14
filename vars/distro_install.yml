@@ -22,7 +22,7 @@
 # The yum module does not accept an empty item
 # in the list, so we need to ensure that empty
 # items are not included in the list.
-tempest_package_list: >-
-  {{ tempest_distro_packages
-     + tempest_service_distro_packages
-     + (tempest_plugin_distro_packages | reject('equalto', '')) | list }}
+refstack_package_list: >-
+  {{ refstack_distro_packages
+     + refstack_service_distro_packages
+     + (refstack_plugin_distro_packages | reject('equalto', '')) | list }}

@@ -16,20 +16,20 @@
 ## APT Cache options
 cache_timeout: 600
 
-_stestr_executable: "{{ (tempest_install_method == 'distro') | ternary('testr', 'stestr') }}"
+_stestr_executable: "{{ (refstack_install_method == 'distro') | ternary('testr', 'stestr') }}"
 
-tempest_distro_packages:
+refstack_distro_packages:
   - git-core
   - libxslt1.1           # required by the python module unittest2
-  - build-essential      # required to build tempest plugins (TODO) remove this when repo server can satisfy the tempest plugin requirements
+  - build-essential      # required to build refstack plugins (TODO) remove this when repo server can satisfy the refstack plugin requirements
 
-tempest_service_distro_packages:
-  - tempest
+refstack_service_distro_packages:
+  - refstack
   - python-junitxml
   - python-subunit
 
 # Note(odyssey4me):
-# Ubuntu does not publish tempest plugin packages. They do
+# Ubuntu does not publish refstack plugin packages. They do
 # all their testing using the source-based installation of
-# tempest.
-tempest_plugin_distro_packages: []
+# refstack.
+refstack_plugin_distro_packages: []
