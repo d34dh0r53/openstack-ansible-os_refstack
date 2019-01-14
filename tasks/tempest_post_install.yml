@@ -1,0 +1,117 @@
+---
+# Copyright 2014, Rackspace US, Inc.
+# Copyright 2018, Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Create tempest directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "{{ item.mode|default('0755') }}"
+  with_items:
+    - path: "{{ tempest_log_dir | realpath }}"
+    - path: "{{ tempest_image_dir }}"
+    - path: "{{ tempest_workspace }}"
+    - path: "/etc/tempest"
+
+- name: Copy tempest config
+  config_template:
+    src: "tempest.conf.j2"
+    dest: "/etc/tempest/tempest.conf"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    config_overrides: "{{ tempest_tempest_conf_overrides }}"
+    config_type: "ini"
+  when: not tempest_use_tempestconf | bool
+
+- name: Initialise tempest workspace
+  shell: |
+    set -e
+    if [ ! -d {{ tempest_workspace }}/etc ]; then
+        if [ -d {{ tempest_venv_bin }} ]; then
+            . {{ tempest_venv_bin }}/activate
+        fi
+      tempest init {{ tempest_workspace }}
+      exit 3
+    fi
+  args:
+    executable: /bin/bash
+  register: tempest_init_workspace
+  changed_when: tempest_init_workspace.rc == 3
+  failed_when:
+    - tempest_init_workspace.rc != 0
+    - tempest_init_workspace.rc != 3
+  tags:
+    # don't trigger ANSIBLE0013
+    - skip_ansible_lint
+
+- include_tasks: tempestconf.yml
+  when: tempest_use_tempestconf | bool
+  tags:
+    - tempest-config
+    - tempestconf
+
+- name: List installed tempest plugins
+  shell: |
+    set -e
+    if [ -d {{ tempest_venv_bin }} ]; then
+       . {{ tempest_venv_bin }}/activate
+    fi
+    tempest list-plugins
+  args:
+    executable: /bin/bash
+  when: "debug | bool"
+
+- name: List tempest tests
+  shell: |
+    set -e
+    if [ -d {{ tempest_venv_bin }} ];
+    then
+      . {{ tempest_venv_bin }}/activate
+    fi
+    tempest run -l
+  args:
+    chdir: "{{ tempest_workspace }}"
+    executable: /bin/bash
+  when: "debug | bool"
+  changed_when: false
+
+- name: Generate tempest test whitelist
+  copy:
+    content: |
+      {% for item in tempest_test_whitelist | unique | sort %}
+      {%   if item != '' %}
+      {{ item }}
+      {%   endif %}
+      {% endfor %}
+    dest: "{{ tempest_test_whitelist_file_path }}"
+  when:
+    - tempest_test_whitelist | length > 0
+
+# Tests to NOT execute:
+# This sets up a list of tests to skip, which can even include those included in the whitelist.
+- name: Generate tempest test blacklist
+  copy:
+    content: |
+      {% for item in tempest_test_blacklist %}
+      {% if item.test != '' %}
+      {{ item.test }}
+      {%   endif %}
+      {% endfor %}
+    dest: "{{ tempest_test_blacklist_file_path }}"
+  when:
+    - tempest_test_blacklist | length > 0

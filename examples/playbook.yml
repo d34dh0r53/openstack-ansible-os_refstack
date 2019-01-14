@@ -1,0 +1,6 @@
+---
+- name: os_refstack role
+  hosts: "hosts"
+  user: root
+  roles:
+    - { role: "os_refstack" }
